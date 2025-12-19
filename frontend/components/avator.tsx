@@ -8,10 +8,13 @@ export default function Avator() {
   const t = useTranslations("Avator");
   const [clicked, setClicked] = useState(false);
   const router = useRouter();
-  const { isLoading, email, logout } = useAuth();
+  const { isLoading, email, shareCode, loginType, logout } = useAuth();
   if (isLoading) {
     return null;
   }
+
+  const displayName = loginType === "code" ? shareCode : email;
+  const displayInitials = displayName.substring(0, 2).toUpperCase();
 
   return (
     <div className="dropdown dropdown-end">
@@ -21,7 +24,7 @@ export default function Avator() {
         className="btn btn-ghost btn-circle avatar placeholder"
       >
         <div className="w-8 rounded-full bg-neutral text-neutral-content">
-          <span className="text-xs">{email.substring(0, 2).toUpperCase()}</span>
+          <span className="text-xs">{displayInitials}</span>
         </div>
       </div>
       <ul
@@ -30,7 +33,7 @@ export default function Avator() {
       >
         <li>
           <a className="text-neutral-content btn-disabled">
-            <span className="truncate">{email}</span>
+            <span className="truncate">{displayName}</span>
           </a>
         </li>
         <li>

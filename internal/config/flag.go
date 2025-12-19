@@ -42,9 +42,6 @@ func Get() *Config {
 	if *tls && (*tlsCertFile == "" || *tlsKeyFile == "") {
 		log.Fatal("tls-cert-file & tls-key-file cannot be empty")
 	}
-	if *smtpHost == "" || *smtpUsername == "" || *smtpPassword == "" {
-		log.Fatal("smtp-host & smtp-username & smtp-password cannot be empty")
-	}
 	if *smtpSender == "" {
 		*smtpSender = *smtpUsername
 	}

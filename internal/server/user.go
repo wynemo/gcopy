@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,11 +14,19 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
+// shareCodeStore stores share codes with their expiration time
+// key: code (string), value: expiresAt (time.Time)
+var shareCodeStore sync.Map
+
 const userSessionName = "user_session"
 
 type Login struct {
 	Email string `form:"email" json:"email" xml:"email"  binding:"required,email"`
 	Code  string `form:"code" json:"code" xml:"password" binding:"omitempty,numeric,len=6"`
+}
+
+type ShareCodeLogin struct {
+	Code string `form:"code" json:"code" binding:"required"`
 }
 
 func (s *Server) emailCodeHandler(c *gin.Context) {
@@ -148,19 +157,46 @@ func (s *Server) getUserHandler(c *gin.Context) {
 		return
 	}
 
-	if session.Values["loggedIn"] == true && session.Values["email"] != "" {
+	if session.Values["loggedIn"] != true {
+		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	loginType, _ := session.Values["loginType"].(string)
+
+	if loginType == "code" {
+		shareCode, ok := session.Values["shareCode"].(string)
+		if !ok || shareCode == "" {
+			c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+			return
+		}
 		if err = session.Save(c.Request, c.Writer); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"email":    session.Values["email"],
-			"loggedIn": session.Values["loggedIn"],
+			"shareCode": shareCode,
+			"loggedIn":  true,
+			"loginType": "code",
 		})
 		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+	// Default to email login
+	email, ok := session.Values["email"].(string)
+	if !ok || email == "" {
+		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+	if err = session.Save(c.Request, c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"email":     email,
+		"loggedIn":  true,
+		"loginType": "email",
+	})
 }
 
 func (s *Server) verifyAuthMiddleware(c *gin.Context) {
@@ -170,11 +206,111 @@ func (s *Server) verifyAuthMiddleware(c *gin.Context) {
 		return
 	}
 
-	if session.Values["loggedIn"] == true && session.Values["email"] != "" {
-		c.Set("subject", session.Values["email"])
-		c.Next()
+	if session.Values["loggedIn"] != true {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
 
-	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+	var subject string
+	loginType, _ := session.Values["loginType"].(string)
+
+	if loginType == "code" {
+		shareCode, ok := session.Values["shareCode"].(string)
+		if !ok || shareCode == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			return
+		}
+		subject = "code:" + shareCode
+	} else {
+		// Default to email login (backward compatible)
+		email, ok := session.Values["email"].(string)
+		if !ok || email == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			return
+		}
+		subject = email
+	}
+
+	c.Set("subject", subject)
+	c.Next()
+}
+
+func (s *Server) shareCodeLoginHandler(c *gin.Context) {
+	var login ShareCodeLogin
+	if err := c.ShouldBindJSON(&login); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": err.Error()})
+		return
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(5 * time.Minute)
+
+	// Check if code exists and is still valid
+	if val, ok := shareCodeStore.Load(login.Code); ok {
+		storedExpiresAt := val.(time.Time)
+		if now.After(storedExpiresAt) {
+			// Code expired, create new entry (new user group)
+			shareCodeStore.Store(login.Code, expiresAt)
+		}
+		// Code exists and valid, user joins existing group
+	} else {
+		// Code doesn't exist, create new entry
+		shareCodeStore.Store(login.Code, expiresAt)
+	}
+
+	session, err := s.sessionStore.Get(c.Request, userSessionName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Clear any existing email login data
+	delete(session.Values, "email")
+	delete(session.Values, "code")
+	delete(session.Values, "validateAt")
+
+	// Set share code login session
+	session.Values["loggedIn"] = true
+	session.Values["loginType"] = "code"
+	session.Values["shareCode"] = login.Code
+	session.Options.MaxAge = 8 * 60 * 60 // 8 hours
+
+	if err = session.Save(c.Request, c.Writer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"shareCode": login.Code,
+		"loggedIn":  true,
+	})
+}
+
+func (s *Server) refreshShareCodeHandler(c *gin.Context) {
+	session, err := s.sessionStore.Get(c.Request, userSessionName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Verify user is logged in with share code
+	if session.Values["loggedIn"] != true || session.Values["loginType"] != "code" {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	shareCode, ok := session.Values["shareCode"].(string)
+	if !ok || shareCode == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	// Refresh the expiration time
+	expiresAt := time.Now().Add(5 * time.Minute)
+	shareCodeStore.Store(shareCode, expiresAt)
+
+	c.JSON(http.StatusOK, gin.H{
+		"shareCode": shareCode,
+		"expiresIn": 300,
+	})
 }

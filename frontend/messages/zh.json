@@ -38,6 +38,19 @@
     "incorrectCode": "验证码不正确, 请退回重试.",
     "authenticationFailed": "身份验证失败, 请退回重试."
   },
+  "ShareCodeLogin": {
+    "back": "返回",
+    "title": "使用共享码登录",
+    "smallTitle": "以使用GCopy",
+    "subTitle": "输入共享码与使用相同共享码的用户同步剪切板.",
+    "placeholder": "输入共享码",
+    "tip": "共享码允许多个用户一起同步剪切板.",
+    "buttonText": "登录",
+    "invalidCode": "请输入共享码.",
+    "authenticationFailed": "身份验证失败, 请重试.",
+    "orUseEmail": "或使用邮箱",
+    "useShareCode": "使用共享码"
+  },
   "SyncClipboard": {
     "title": "同步剪切板",
     "subTitle": "按下按钮剪切板就能在不同设备间同步.",

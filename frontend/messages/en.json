@@ -38,6 +38,19 @@
     "incorrectCode": "Incorrect code. Please go back and retry.",
     "authenticationFailed": "Authentication failed. Please go back and retry."
   },
+  "ShareCodeLogin": {
+    "back": "Back",
+    "title": "Sign in with Share Code",
+    "smallTitle": "to continue to GCopy",
+    "subTitle": "Enter a share code to sync clipboard with others using the same code.",
+    "placeholder": "Enter share code",
+    "tip": "Share code allows multiple users to sync clipboard together.",
+    "buttonText": "Sign in",
+    "invalidCode": "Please enter a share code.",
+    "authenticationFailed": "Authentication failed. Please retry.",
+    "orUseEmail": "Or use email",
+    "useShareCode": "Use share code"
+  },
   "SyncClipboard": {
     "title": "Sync the clipboard",
     "subTitle": "Press the button and the clipboard synced between devices.",

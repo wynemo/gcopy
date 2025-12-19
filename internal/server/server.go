@@ -67,10 +67,12 @@ func (s *Server) Run() {
 	v1.POST("/user/login", s.loginHandler)
 	v1.GET("/user/logout", s.logoutHandler)
 	v1.GET("/user", s.getUserHandler)
+	v1.POST("/user/share-code-login", s.shareCodeLoginHandler)
 
 	v1.Use(s.verifyAuthMiddleware)
 	v1.GET("/clipboard", s.getClipboardHandler)
 	v1.POST("/clipboard", s.updateClipboardHandler)
+	v1.POST("/user/share-code-refresh", s.refreshShareCodeHandler)
 	s.log.Info("The server has started!")
 	if s.config.TLS {
 		if err := r.RunTLS(s.config.Listen, s.config.TLSCertFile, s.config.TLSKeyFile); err != nil {

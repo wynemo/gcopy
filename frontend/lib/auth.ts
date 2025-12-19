@@ -2,13 +2,17 @@ import { useSWRConfig } from "swr";
 import useSWR from "swr";
 
 interface User {
-  email: string;
+  email?: string;
+  shareCode?: string;
   loggedIn: boolean;
+  loginType?: "email" | "code";
 }
 
 const defaultUser: User = {
   email: "",
+  shareCode: "",
   loggedIn: false,
+  loginType: undefined,
 };
 
 const userApiRoute = "/api/v1/user";
@@ -26,8 +30,10 @@ export default function useAuth() {
   const { data, isLoading } = useSWR(userApiRoute, fetcher<User>, {
     fallbackData: defaultUser,
   });
-  const email = data.email;
+  const email = data.email || "";
+  const shareCode = data.shareCode || "";
   const loggedIn = data.loggedIn;
+  const loginType = data.loginType;
   const { mutate } = useSWRConfig();
 
   const logout = async () => {
@@ -42,5 +48,5 @@ export default function useAuth() {
     }
   };
 
-  return { isLoading, email, loggedIn, logout };
+  return { isLoading, email, shareCode, loggedIn, loginType, logout };
 }

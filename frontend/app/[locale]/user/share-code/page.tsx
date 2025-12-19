@@ -5,48 +5,46 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import Logo from "@/components/logo";
 
-export default function EmailCode({
-  searchParams,
-}: {
-  searchParams: { email: string };
-}) {
+export default function ShareCodeLogin() {
   const [clicked, setClicked] = useState<boolean>(false);
   const locale = useLocale();
-  const t = useTranslations("EmailCode");
-  const ts = useTranslations("ShareCodeLogin");
+  const t = useTranslations("ShareCodeLogin");
   const [errorMessage, setErrorMessage] = useState("");
-  const email = searchParams.email;
   const router = useRouter();
 
-  const createEmailCode = async (event: FormEvent) => {
+  const handleShareCodeLogin = async (event: FormEvent) => {
     event.preventDefault();
     setClicked(true);
     const formData = new FormData(event.currentTarget as HTMLFormElement);
-    const email = formData.get("email") as string;
-    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email)) {
-      setErrorMessage(t("invalidEmail"));
+    const code = (formData.get("code") as string).trim();
+
+    if (!code) {
+      setErrorMessage(t("invalidCode"));
       setClicked(false);
       return;
     }
-    const res = await fetch("/api/v1/user/email-code", {
+
+    const res = await fetch("/api/v1/user/share-code-login", {
       headers: {
         accept: "application/json",
         "content-type": "application/json",
       },
       method: "POST",
-      body: JSON.stringify({ email: email }),
+      body: JSON.stringify({ code }),
     });
-    if (res.status == 200) {
-      router.push(`/${locale}/user/login?email=${email}`);
+
+    if (res.status === 200) {
+      router.push(`/${locale}/`);
       return;
     }
-    setErrorMessage(t("sendEmailFailed"));
+
+    setErrorMessage(t("authenticationFailed"));
     setClicked(false);
   };
 
   return (
     <form
-      onSubmit={createEmailCode}
+      onSubmit={handleShareCodeLogin}
       className="card w-full md:w-[32rem] bg-base-100 shadow-xl"
     >
       <div className="card-body gap-4">
@@ -77,11 +75,10 @@ export default function EmailCode({
         <p>{t("subTitle")}</p>
         <div>
           <input
-            name="email"
+            name="code"
             type="text"
             placeholder={t("placeholder")}
             className="input input-bordered w-full"
-            defaultValue={email}
             autoFocus
           />
           <span className="text-xs">{t("tip")}</span>
@@ -95,10 +92,10 @@ export default function EmailCode({
         <div className="divider">OR</div>
         <div className="text-center">
           <a
-            href={`/${locale}/user/share-code`}
+            href={`/${locale}/user/email-code`}
             className="link link-primary"
           >
-            {ts("useShareCode")}
+            {t("orUseEmail")}
           </a>
         </div>
       </div>
