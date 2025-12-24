@@ -1,18 +1,19 @@
 FROM node:18-alpine AS base
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 FROM base AS builder
 
 WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY frontend/package.json frontend/pnpm-lock.yaml* ./
 COPY frontend/. .
 COPY frontend/.env.sample .env.production
 
 RUN apk add --no-cache libc6-compat
-RUN npm config delete proxy
-RUN npm ci
-RUN npx update-browserslist-db@latest --force
-RUN npm run build
+RUN pnpm install --frozen-lockfile
+RUN pnpm dlx update-browserslist-db@latest --force
+RUN pnpm run build
 
 FROM base AS runner
 LABEL maintainer="llaoj <hmmmbiubiubiu@gmail.com>"

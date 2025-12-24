@@ -19,8 +19,6 @@ services:
       dockerfile: build/frontend/Dockerfile
     restart: always
     ports:
-    - "3375:3375"
-    volumes:
-    - ./frontend/.env.production:/app/.env.production
+    - "3000:3375"
     depends_on:
     - gcopy
