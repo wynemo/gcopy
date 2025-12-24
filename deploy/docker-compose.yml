@@ -2,15 +2,21 @@ version: '3.8'
 services:
   gcopy:
     container_name: gcopy
-    image: llaoj/gcopy
+    build:
+      context: ..
+      dockerfile: build/gcopy/Dockerfile
     restart: always
     ports:
     - "3376:3376"
-    command: ["--app-key=<app-key>", "--smtp-host=<smtp-host>", "--smtp-port=<smtp-port>", "--smtp-username=<smtp-username>", "--smtp-password=<smtp-password>", "--smtp-ssl"]
+    env_file:
+    - ./.env
+    command: ["--app-key=${APP_KEY}"]
 
   gcopy-frontend:
     container_name: gcopy-frontend
-    image: llaoj/gcopy-frontend
+    build:
+      context: ..
+      dockerfile: build/frontend/Dockerfile
     restart: always
     ports:
     - "3375:3375"
