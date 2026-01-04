@@ -46,6 +46,7 @@ The tested browsers and its versions are listed below:
 |Browser|Version||
 |-|-|-|
 |Chrome for Android|107.0.5304.105|✅ Tested|
+|Chrome for iOS|119.0.6045.109|✅ Tested|
 |Chrome for macOS|Version 121.0.6167.85 (Official Build) (x86_64)|✅ Tested|
 |Chrome for Windows|Version 123.0.6312.86 (Official Build) (x86_64)|✅ Tested|
 |Edge for Android|Edge 108.0.1462.48|✅ Tested|

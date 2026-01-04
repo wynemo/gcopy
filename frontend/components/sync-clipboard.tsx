@@ -20,7 +20,8 @@ import {
   clipboardRead,
 } from "@/lib/clipboard";
 // Chrome | Safari | Mobile Safari
-import { browserName, isAndroid } from "react-device-detect";
+// isIOS: All browsers on iOS use WebKit engine and need Safari-like workarounds
+import { browserName, isAndroid, isIOS } from "react-device-detect";
 import SyncButton from "@/components/sync-button";
 import SyncShortcut from "@/components/sync-shortcut";
 import QuickInput from "@/components/quick-input";
@@ -119,7 +120,8 @@ export default function SyncClipboard() {
     ) {
       addLog({ message: t("logs.upToDate") });
 
-      if (browserName.includes("Safari")) {
+      // All iOS browsers use WebKit and need the same workaround as Safari
+      if (browserName.includes("Safari") || isIOS) {
         setStatus("interrupted-r");
         addLog({ message: t("logs.pressAgain"), level: LogLevel.Warn });
         addLog({ message: t("logs.pressPaste"), level: LogLevel.Warn });
@@ -151,7 +153,8 @@ export default function SyncClipboard() {
         return;
       }
 
-      if (browserName.includes("Safari")) {
+      // All iOS browsers use WebKit and need the same workaround as Safari
+      if (browserName.includes("Safari") || isIOS) {
         setTmpClipboard({
           blobId: nextBlobId,
           index: xindex,
@@ -393,8 +396,8 @@ export default function SyncClipboard() {
         return;
       }
 
-      // Ask for permission
-      if (!browserName.includes("Safari")) {
+      // Ask for permission (Safari and iOS browsers don't support permissions.query for clipboard)
+      if (!browserName.includes("Safari") && !isIOS) {
         const permissionClipboardRead: PermissionName =
           "clipboard-read" as PermissionName;
         const permission = await navigator.permissions.query({
